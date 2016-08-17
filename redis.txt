@@ -1,0 +1,107 @@
+redis-cli ping
+redis-cli
+redis-server
+
+SET server:name "fido"
+
+GET server:name
+
+SET connections 10
+INCR connections => 11
+SETNX  connections 2
+DEL connections
+GET connections => nil
+INCR connections =>increase nil to 1
+decr connections
+
+SET resource:lock "Redis Demo"
+EXPIRE resource:lock 120
+TTL resource:lock => 113
+// after 113s
+TTL resource:lock => -2
+// -2 means the key does not exist (anymore)
+// -1 means the key will never expire
+// SET a key with a new value will reset its TTL
+
+SET resource:lock "Redis Demo 1"
+EXPIRE resource:lock 120
+TTL resource:lock => 119
+SET resource:lock "Redis Demo 2"
+TTL resource:lock => -1
+
+// List: RPUSH, LPUSH, LLEN, LRANGE, LPOP, RPOP
+// RPUSH puts the new value at the end of the list.
+RPUSH friends "Alice"
+RPUSH friends "Bob"
+// LPUSH puts the new value at the start of the list.
+LPUSH friends "Sam"
+LRANGE friends 0 -1 => 1) "Sam", 2) "Alice", 3) "Bob"
+LRANGE friends 0 1 => 1) "Sam", 2) "Alice"
+LRANGE friends 1 2 => 1) "Alice", 2) "Bob"
+
+LLEN friends => 3
+// LPOP removes the first element from the list and returns it.
+LPOP friends => "Sam"
+// RPOP removes the last element from the list and returns it.
+RPOP friends => "Bob"
+LLEN friends => 1
+LRANGE friends 0 -1 => 1) "Alice"
+LRANGE friends 1 2 => (empty list or set)
+
+// set: SADD, SREM, SISMEMBER, SMEMBERS, SUNION.
+SADD superpowers "flight"
+SADD superpowers "x-ray vision"
+SADD superpowers "reflexes"
+SREM superpowers "reflexes"
+SISMEMBER superpowers "flight" => 1
+SISMEMBER superpowers "reflexes" => 0
+SMEMBERS superpowers => 1) "flight", 2) "x-ray vision"
+
+SADD birdpowers "pecking"
+SADD birdpowers "flight"
+SUNION superpowers birdpowers => 1) "pecking", 2) "x-ray vision", 3) "flight"
+
+// Sorted Sets
+ZADD hackers 1940 "Alan Kay"
+ZADD hackers 1906 "Grace Hopper"
+ZADD hackers 1953 "Richard Stallman"
+ZADD hackers 1965 "Yukihiro Matsumoto"
+ZADD hackers 1916 "Claude Shannon"
+ZADD hackers 1969 "Linus Torvalds"
+ZADD hackers 1957 "Sophie Wilson"
+ZADD hackers 1912 "Alan Turing"
+ZRANGE hackers 2 4 => 1) "Claude Shannon", 2) "Alan Kay", 3) "Richard Stallman"
+
+// Hashes are maps between string fields and string values
+HSET user:xx name "John Smith"
+HSET user:xx email "john.smith@example.com"
+HSET user:xx password "s3cret"
+HGETALL user:xx
+/*
+1) "name"
+2) "John Smith"
+3) "email"
+4) "john.smith@example.com"
+5) "password"
+6) "s3cret"
+*/
+// set multiple fields at once
+HMSET user:yy name "Mary Jones" password "hidden" email "mjones@example.com"
+HGET user:yy name => "Mary Jones"
+
+HSET user:1000 visits 10
+HINCRBY user:1000 visits 1 => 11
+HINCRBY user:1000 visits 10 => 21
+HDEL user:1000 visits
+HINCRBY user:1000 visits 1 => 1
+
+
+
+
+
+
+
+
+
+
+
