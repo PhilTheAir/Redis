@@ -66,23 +66,24 @@ ee.on('readfile', (files) => {
             idxStart = 0;
             while ((idx = leftOver.indexOf("\n", idxStart)) !== -1) {
                 line = leftOver.substring(idxStart, idx);
-                console.log("one line read: " + line);
-                // ee.emit('redis', line, fileName);
+                // console.log("one line read: " + line);
+                ee.emit('redis', line, fileName);
                 idxStart = idx + 1;
             }
             leftOver = leftOver.substring(idxStart);
         }
         if (leftOver !== '') {
-            console.log("one line read: " + leftOver);
-            // ee.emit('redis', leftOver, fileName);
+            // console.log("one line read: " + leftOver);
+            ee.emit('redis', leftOver, fileName);
         }
     });
 });
 
 ee.on('redis', (line, fileName) => {
+    console.log("one line read: ", fileName, line);
     // <TICKER>,<DTYYYYMMDD>,<TIME>,<OPEN>,<HIGH>,<LOW>,<CLOSE>,<VOL>
     // AUDUSD,20010102,230100,0.5617,0.5617,0.5617,0.5617,4
-    let arr = line.split(comma);
+    /*let arr = line.split(comma);
     let [ yyyy, mm, dd ] = [ parseInt(arr[1].substr(0, 4)), parseInt(arr[1].substr(4, 2)), parseInt(arr[1].substr(6, 2)) ];
     let [ hh, mi, ss ] = [ parseInt(arr[2].substr(0, 2)), parseInt(arr[2].substr(2, 2)), parseInt(arr[2].substr(4, 2)) ];
     let tick = (new Date(yyyy, mm - 1, dd, hh, mi, ss)).getTime();
@@ -92,7 +93,7 @@ ee.on('redis', (line, fileName) => {
     redis.rpush(fileName + _l, arr[7]);
     redis.rpush(fileName + _c, arr[8]);
     redis.rpush(fileName + _v, arr[9]);
-    console.log('redis imported', fileName);
+    console.log('redis imported', fileName);*/
 });
 
 ee.emit('start');
