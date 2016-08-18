@@ -11,39 +11,45 @@ const redis = new Redis({
     port: 6379,
     host: '127.0.0.1',
     family: 4,  // 4(IPv4) or 6(IPv6)
-    //password: 'luckyus',
-    db: 0,
+    // password: 'luckyus',
+    db: 0
 });
 
 const dir = './data/';
 
 ee.on('start', () => {
-    redis.get('imda', function (err, result) {
-        if ((result !== 'updated'), () => {
-            ee.on('import');
-        });
+    redis.get('imda', (err, result) => {
+        if (result !== 'updated') {
+            ee.emit('readdir');
+        }
+        else {
+            console.log('updated ... ');
+            process.exit();
+        }
     });
 });
 
-ee.on('import', () => {
+ee.on('readdir', () => {
     fs.readdir(dir, (err, files) => { 
-        if (!err) 
-            console.log(files);
-        else
+        if (err) {
             throw err; 
+        }
+        else {
+            ee.emit('readfile', files);
+        }
     });
+});
+
+ee.on('readfile', (files) => {
+    files.forEach((value) => {
+        let rl = readline.createInterface({
+            input: fs.createReadStream(value)
+        });
+        rl.on('line', (line) => {
+            console.log('Line from file:', line);
+        });
+    });
+    process.exit();
 });
 
 ee.emit('start');
-
-
-/*
-let rl = readline.createInterface({
-  input: fs.createReadStream('file.in')
-});
-
-rl.on('line', function (line) {
-  console.log('Line from file:', line);
-});
-
-*/
