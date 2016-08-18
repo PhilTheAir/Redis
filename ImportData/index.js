@@ -50,13 +50,14 @@ ee.on('readfile', (files) => {
     files.forEach((value) => {
         let filePath = dir + value;
         let fileName = value.split(dot)[0];
-        /*let rl = readline.createInterface({
+        let rl = readline.createInterface({
             input: fs.createReadStream(filePath)
         });
         rl.on('line', (line) => {
             ee.emit('redis', line, fileName);
-        });*/
-
+        });
+        
+        /*
         let fd = fs.openSync(filePath, 'r'); 
         let buffer = new Buffer(bufferSize);
         let leftOver = '';
@@ -75,7 +76,7 @@ ee.on('readfile', (files) => {
         if (leftOver !== '') {
             // console.log("one line read: " + leftOver);
             ee.emit('redis', leftOver, fileName);
-        }
+        }*/
     });
 });
 
