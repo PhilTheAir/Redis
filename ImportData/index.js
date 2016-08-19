@@ -14,9 +14,7 @@ const redis = new Redis({
 
 const dir = './data/';
 const dot = '.';
-const limit = 10000;
-
-let todo = 0;
+const limit = 20000;
 
 ee.on('start', () => {
     redis.get('imda', (err, result) => {
@@ -36,7 +34,6 @@ ee.on('readdir', () => {
             throw err; 
         }
         else {
-            todo = files.length;
             ee.emit('readfile', files);
         }
     });
@@ -44,45 +41,42 @@ ee.on('readdir', () => {
 
 ee.on('readfile', (files) => {
     if (files.length > 0) {
-        let value = files.shift();
+        let value = files.shift().toLowerCase();
         let filePath = dir + value;
         let fileName = value.split(dot)[0];
         let rl = readline.createInterface({
             input: fs.createReadStream(filePath)
         });
         let allLines = [];
-        let lineNum = 0;
         rl.on('line', (line) => {
             let toPush = [];
             toPush.push('rpush');
             toPush.push(fileName);
             toPush.push(utils.strifyLine(line));
             allLines.push(toPush);
-            lineNum += 1;
-            if (lineNum === limit) {
-                redis.multi(allLines).exec(() => {
-                    console.log(fileName, 'imported:', limit, 'lines.');
-                });
-                allLines = [];
-                lineNum = 0;
-            }
         });
         rl.on('close', () => {
-            if (allLines.length > 0) {
-                redis.multi(allLines).exec(() => {
-                    console.log(fileName, 'imported:', lineNum, 'lines.');
-                    allLines = [];
-                    lineNum = 0;
-                    ee.emit('readfile', files);
-                });
-            }
-            else {
-                ee.emit('readfile', files);
-            }
+            ee.emit('redis', allLines, fileName, files);
         });
     }
     else {
-        process.exit();
+        redis.set('imda', 'updated', () => {
+            process.exit();
+        });
+    }
+});
+
+ee.on('redis', (allLines, fileName, files) => {
+    if (allLines.length > 0) {
+        let l = (limit <= allLines.length) ? limit : allLines.length;
+        let arr = allLines.splice(0, l);
+        redis.multi(arr).exec(() => {
+            console.log(fileName, 'imported:', l, 'lines.');
+            ee.emit('redis', allLines, fileName, files);
+        });
+    }
+    else {
+        ee.emit('readfile', files);
     }
 });
 
