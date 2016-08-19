@@ -47,7 +47,7 @@ ee.on('readdir', () => {
 ee.on('readfile', (files) => {
     files.forEach((value) => {
         let fileName = value.split(dot)[0];
-        let arr = [ fileName + _t, fileName + _o, fileName + _h, fileName + _l, fileName + _c, fileName + _v ];
+        let arr = [ fileName, fileName + _t, fileName + _o, fileName + _h, fileName + _l, fileName + _c, fileName + _v ];
         arr.forEach((e) => {
             redis.del(e);
             console.log(e, 'deleted.');
