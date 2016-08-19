@@ -2,6 +2,7 @@ const events = require('events');
 const fs = require('fs');
 const readline = require('readline');
 const Redis = require('ioredis');
+const utils = require('./utils');
 
 const ee = new events.EventEmitter();
 const redis = new Redis({
@@ -13,8 +14,9 @@ const redis = new Redis({
 
 const dir = './data/';
 const dot = '.';
-const comma = ',';
-const bufferSize = 1024;
+const limit = 10000;
+
+let todo = 0;
 
 ee.on('start', () => {
     redis.get('imda', (err, result) => {
@@ -34,6 +36,7 @@ ee.on('readdir', () => {
             throw err; 
         }
         else {
+            todo = files.length;
             ee.emit('readfile', files);
         }
     });
@@ -47,35 +50,40 @@ ee.on('readfile', (files) => {
         let rl = readline.createInterface({
             input: fs.createReadStream(filePath)
         });
+        let allLines = [];
+        let lineNum = 0;
         rl.on('line', (line) => {
-            ee.emit('redis', line, fileName);
+            let toPush = [];
+            toPush.push('rpush');
+            toPush.push(fileName);
+            toPush.push(utils.strifyLine(line));
+            allLines.push(toPush);
+            lineNum += 1;
+            if (lineNum === limit) {
+                redis.multi(allLines).exec(() => {
+                    console.log(fileName, 'imported:', limit, 'lines.');
+                });
+                allLines = [];
+                lineNum = 0;
+            }
         });
         rl.on('close', () => {
-            ee.emit('readfile', files);
+            if (allLines.length > 0) {
+                redis.multi(allLines).exec(() => {
+                    console.log(fileName, 'imported:', lineNum, 'lines.');
+                    allLines = [];
+                    lineNum = 0;
+                    ee.emit('readfile', files);
+                });
+            }
+            else {
+                ee.emit('readfile', files);
+            }
         });
     }
     else {
-        console.log('All data imported !!');
         process.exit();
     }
-});
-
-ee.on('redis', (line, fileName) => {
-    // AUDUSD,20010102,230100,0.5617,0.5617,0.5617,0.5617,4
-    let arr = line.split(comma);
-    let [ yyyy, mm, dd ] = [ parseInt(arr[1].substr(0, 4)), parseInt(arr[1].substr(4, 2)), parseInt(arr[1].substr(6, 2)) ];
-    let [ hh, mi, ss ] = [ parseInt(arr[2].substr(0, 2)), parseInt(arr[2].substr(2, 2)), parseInt(arr[2].substr(4, 2)) ];
-    let tick = (new Date(yyyy, mm - 1, dd, hh, mi, ss)).getTime();
-    let j = {
-        tick: tick,
-        open: arr[5],
-        high: arr[6],
-        low: arr[7],
-        close: arr[8],
-        volume: arr[9],
-    }
-    redis.rpush(fileName, JSON.stringify(j));
-    console.log('redis imported', fileName);
 });
 
 ee.emit('start');
