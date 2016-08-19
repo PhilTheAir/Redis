@@ -7,19 +7,13 @@ const ee = new events.EventEmitter();
 const redis = new Redis({
     port: 6379,
     host: '127.0.0.1',
-    family: 4,  // 4(IPv4) or 6(IPv6)
-    // password: 'luckyus',
+    family: 4,
     db: 0
 });
 
 const dir = './data/';
-const _t = '_tick';
-const _o = '_open';
-const _h = '_high';
-const _l = '_low';
-const _c = '_close';
-const _v = '_volume';
 const dot = '.';
+let todo = 0;
 
 ee.on('start', () => {
     redis.get('imda', (err, result) => {
@@ -39,6 +33,7 @@ ee.on('readdir', () => {
             throw err; 
         }
         else {
+            todo = files.length;
             ee.emit('readfile', files);
         }
     });
@@ -46,11 +41,13 @@ ee.on('readdir', () => {
 
 ee.on('readfile', (files) => {
     files.forEach((value) => {
-        let fileName = value.split(dot)[0];
-        let arr = [ fileName, fileName + _t, fileName + _o, fileName + _h, fileName + _l, fileName + _c, fileName + _v ];
-        arr.forEach((e) => {
-            redis.del(e);
-            console.log(e, 'deleted.');
+        let fileName = value.split(dot)[0].toLowerCase();
+        redis.del(fileName, () => {
+            todo -= 1;
+            console.log(fileName, 'deleted.');
+            if (todo === 0) {
+                process.exit();
+            }
         });
     });
 });
