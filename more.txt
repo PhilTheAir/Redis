@@ -1,5 +1,4 @@
 ﻿config set stop-writes-on-bgsave-error no
-
 127.0.0.1:6379> config get *
   1) "dbfilename"
   2) "dump.rdb"
