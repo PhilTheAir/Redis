@@ -46,7 +46,7 @@ ee.on('readfile', (files) => {
             todo -= 1;
             console.log(fileName, 'deleted.');
             if (todo === 0) {
-                console.log('All data deleted.');
+                // console.log('All data deleted.');
                 process.exit();
             }
         });
