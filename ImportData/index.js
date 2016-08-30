@@ -61,7 +61,7 @@ ee.on('readfile', (files) => {
     }
     else {
         redis.set('imda', 'updated', () => {
-            console.log('updated ... ');
+            // console.log('updated ... ');
             process.exit();
         });
     }
