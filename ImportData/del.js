@@ -34,7 +34,13 @@ ee.on('readdir', () => {
         }
         else {
             todo = files.length;
-            ee.emit('readfile', files);
+            if (todo === 0) {
+                console.log('nothing to delete ... ');
+                process.exit();
+            }
+            else {
+                ee.emit('readfile', files);
+            }
         }
     });
 });
