@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "event-stream": "^3.3.4",
     "ioredis": "^2.3.0"
   }
 }
