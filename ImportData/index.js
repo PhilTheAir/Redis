@@ -1,8 +1,8 @@
 const events = require('events');
 const fs = require('fs');
-const readline = require('readline');
 const Redis = require('ioredis');
 const utils = require('./utils');
+const eventStream = require('event-stream');
 
 const ee = new events.EventEmitter();
 const redis = new Redis({
@@ -14,7 +14,9 @@ const redis = new Redis({
 
 const dir = './data/';
 const dot = '.';
-const limit = 20000;
+const limit = 100;  // 700 for any dir with sole file
+let todo = 0;
+let done = 0;
 
 ee.on('start', () => {
     redis.get('imda', (err, result) => {
@@ -34,50 +36,74 @@ ee.on('readdir', () => {
             throw err; 
         }
         else {
-            ee.emit('readfile', files);
+            todo = files.length;
+            if (todo === 0) {
+                console.log('nothing to insert into Redis ... ');
+                process.exit();
+            }
+            else {
+                ee.emit('readfile', files);
+            }
         }
     });
 });
 
 ee.on('readfile', (files) => {
-    if (files.length > 0) {
+    while (files.length > 0) {
         let value = files.shift().toLowerCase();
         let filePath = dir + value;
         let fileName = value.split(dot)[0];
-        let rl = readline.createInterface({
-            input: fs.createReadStream(filePath)
-        });
+        
+        let lineNum = 0;
         let allLines = [];
-        rl.on('line', (line) => {
-            let toPush = [];
-            toPush.push('rpush');
-            toPush.push(fileName);
-            toPush.push(utils.strifyLine(line));
-            allLines.push(toPush);
-        });
-        rl.on('close', () => {
-            ee.emit('redis', allLines, fileName, files);
-        });
-    }
-    else {
-        redis.set('imda', 'updated', () => {
-            // console.log('updated ... ');
-            process.exit();
-        });
+
+        console.time(fileName, 'concatenation');
+
+        let _stream = fs.createReadStream(filePath)
+            .pipe(eventStream.split())
+            .pipe(eventStream.mapSync((line) => {
+                if (line.trim() !== '') {
+                    lineNum += 1;
+                    allLines.push([['rpush'], [fileName], [utils.strifyLine(line)]]);
+                    if (lineNum === limit) {
+                        _stream.pause();
+                        redis.multi(allLines).exec(() => {
+                            console.log('imported', lineNum, 'lines to Redis from', fileName);
+                            lineNum = 0;
+                            allLines = [];
+                            _stream.resume();
+                        });
+                    }
+                }
+            })
+            .on('end', () => {
+                let l = allLines.length;
+                if (l > 0) {
+                    redis.multi(allLines).exec(() => {
+                        console.log('imported the last', l, 'lines to Redis from', fileName);
+                        ee.emit('watch', fileName);
+                    });
+                }
+                else {
+                    ee.emit('watch', fileName);
+                }
+            })
+            .on('error', (err) => {
+                console.log(err);
+            })
+        );
     }
 });
 
-ee.on('redis', (allLines, fileName, files) => {
-    if (allLines.length > 0) {
-        let l = (limit <= allLines.length) ? limit : allLines.length;
-        let arr = allLines.splice(0, l);
-        redis.multi(arr).exec(() => {
-            console.log(fileName, 'imported:', l, 'lines.');
-            ee.emit('redis', allLines, fileName, files);
-        });
-    }
-    else {
-        ee.emit('readfile', files);
+ee.on('watch', (fileName) => {
+    console.log('imported the entire', fileName, 'to Redis.');
+    console.timeEnd(fileName, 'concatenation');
+    done += 1;
+    if (done === todo) {
+        redis.set('imda', 'updated', () => {
+            console.log('All data have been inserted into Redis ... ');
+            process.exit();
+        });   
     }
 });
 
