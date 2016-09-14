@@ -5,7 +5,9 @@ exports.strifyLine = (line) => {
     let arr = line.split(comma);
     let [ yyyy, mm, dd ] = [ parseInt(arr[1].substr(0, 4)), parseInt(arr[1].substr(4, 2)), parseInt(arr[1].substr(6, 2)) ];
     let [ hh, mi, ss ] = [ parseInt(arr[2].substr(0, 2)), parseInt(arr[2].substr(2, 2)), parseInt(arr[2].substr(4, 2)) ];
-    let tick = (new Date(yyyy, mm - 1, dd, hh, mi, ss)).getTime();
+    // input UTC milliseconds
+    let tick = (new Date(Date.UTC(yyyy, mm - 1, dd, hh, mi, ss))).getTime();
+    // customize time zone later when to use this tick value
     let j = {
         t: tick,
         o: arr[3],
