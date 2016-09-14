@@ -8,6 +8,7 @@ exports.strifyLine = (line) => {
     // input UTC milliseconds
     let tick = (new Date(Date.UTC(yyyy, mm - 1, dd, hh, mi, ss))).getTime();
     // customize time zone later when to use this tick value
+    // such as set global.timezoneOffset when using highstock.js
     let j = {
         t: tick,
         o: arr[3],
